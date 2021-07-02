@@ -31,7 +31,7 @@ export default class Main extends Component {
     render() {
         return (
             <div>
-                <SearchBar ref={this.searchBarRef}/>
+                <SearchBar />
                 <YouTube ref={this.playerRef}/>
                 <button onClick={this.operate.bind(this)}>{this.state.operation}</button>
             </div>
