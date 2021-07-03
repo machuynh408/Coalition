@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import YouTube from './YouTube'
+import Spotify from './Spotify'
 import SearchBar from './SearchBar'
 
 export default class Main extends Component {
@@ -34,7 +35,7 @@ export default class Main extends Component {
         return (
             <div>
                 <SearchBar />
-                <YouTube ref={this.playerRef}/>
+                <Spotify ref={this.playerRef}/>
                 <button onClick={this.operate.bind(this)}>{this.state.operation}</button>
             </div>
         );

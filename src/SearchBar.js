@@ -1,14 +1,9 @@
 import React from 'react'
 import Axios from 'axios'
+import { spotify } from './Spotify'
 
 const YOUTUBE_API = "https://www.googleapis.com/youtube/v3/search"
-const YOUTUBE_API_KEY = ""
-
-const SOUNDCLOUD_API = "SC"
-const SOUNDCLOUD_API_KEY = ""
-
-const SPOTIFY_API = "SPOT"
-const SPOTIFY_API_KEY = ""
+const YOUTUBE_API_KEY = "AIzaSyCo6MwBXeTpSEThIs1r2IpXwYX9WQqgJvM"
 
 export default class SearchBar extends React.Component {
 
@@ -20,11 +15,10 @@ export default class SearchBar extends React.Component {
     }
 
     search() {
-
-        const source = document.getElementById("sources").value
+        const source = parseInt(document.getElementById("sources").value)
 
         switch(source) {
-            case 1:
+            case 1: // YOUTUBE
                 Axios({
                     "method": "GET",
                     "url": YOUTUBE_API,
@@ -49,11 +43,20 @@ export default class SearchBar extends React.Component {
                     })
         
                     this.setState({searchResults: results})
-        
                 })
                 .catch((error) => {
                     console.log(error)
                 })
+                break
+            case 2: // SPOTIFY       
+                spotify.searchTracks("BLXST")
+                .then((res) => {
+                    console.log(res.body)
+                }, (err) => {
+                    console.log(err)
+                })
+                break
+            default:
                 break
         }
     }
@@ -66,8 +69,7 @@ export default class SearchBar extends React.Component {
                 <select id="sources">
                     <option value="0" selected>All</option>
                     <option value="1">YouTube</option>
-                    <option value="2">SoundCloud</option>
-                    <option value="3">Spotify</option>
+                    <option value="2">Spotify</option>
                 </select>
 
                 <button onClick= {this.search.bind(this)}>Search</button>
