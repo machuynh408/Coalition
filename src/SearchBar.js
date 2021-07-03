@@ -3,7 +3,7 @@ import Axios from 'axios'
 import { spotify } from './Spotify'
 
 const YOUTUBE_API = "https://www.googleapis.com/youtube/v3/search"
-const YOUTUBE_API_KEY = "AIzaSyCo6MwBXeTpSEThIs1r2IpXwYX9WQqgJvM"
+const YOUTUBE_API_KEY = ""
 
 export default class SearchBar extends React.Component {
 
