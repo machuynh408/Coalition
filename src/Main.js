@@ -25,6 +25,8 @@ export default class Main extends Component {
                 this.player.play()
                 this.setState({operation: "Pause"})
                 break
+            default:
+                break
         }
     }
 

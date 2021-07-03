@@ -6,9 +6,8 @@ const SDK_GLOBAL = 'YT'
 
 export default class YouTube extends React.Component {
 
-    constructor(props) {
-        super(props)
-        this.state = { playerState: -1 }
+    state = { 
+        playerState: -1 
     }
 
     componentDidMount = () => {
