@@ -1,23 +1,33 @@
 import React from 'react'
+import SearchInput from './UI/SearchInput';
 import Axios from 'axios'
 import { spotify } from './Spotify'
+
+// Material-UI
+import { Button, Grid } from '@material-ui/core';
 
 const YOUTUBE_API = "https://www.googleapis.com/youtube/v3/search"
 const YOUTUBE_API_KEY = ""
 
 export default class SearchBar extends React.Component {
-
+    
     state = {
         searchValue: "",
-        searchType: 0,
-        searchResults: [],
-        queue: []
+        selectValue: 0,
+        searchResults: []
+    }
+
+    searchValueCallback = (value) => {
+        this.setState({ searchValue: value })
+    }
+
+    selectValueCallback = (value) => {
+        this.setState({ selectValue: value })
     }
 
     search() {
-        const source = parseInt(document.getElementById("sources").value)
 
-        switch(source) {
+        switch(this.state.selectValue) {
             case 1: // YOUTUBE
                 Axios({
                     "method": "GET",
@@ -63,30 +73,17 @@ export default class SearchBar extends React.Component {
 
     render() {
         return (
-            <div>
-                <input type="text" placeholder="Music" value= { this.state.searchValue } onChange= { (e) => this.setState({ searchValue: e.target.value }) }></input>
-
-                <select id="sources">
-                    <option value="0" selected>All</option>
-                    <option value="1">YouTube</option>
-                    <option value="2">Spotify</option>
-                </select>
-
-                <button onClick= {this.search.bind(this)}>Search</button>
-                <ul>
-                    {this.state.searchResults.map((entry) => (
-                        <div key={entry["videoId"]}>
-                            <div style={{ display: "inline-block" }}>
-                                <img src={entry["thumbnail"]}></img>
-                            </div>
-                            <div style={{ display: "inline-block" }}>
-                                <h2>{ entry["title"] }</h2>
-                                <h3>{ entry["channel"] }</h3>
-                            </div>
-                        </div>
-                    ))}
-                </ul>
-            </div>
+            <>
+                  <Grid container alignItems="center" spacing={2}>
+                      <Grid item>
+                          <SearchInput textChanged={ this.searchValueCallback } selectChanged= { this.selectValueCallback }/>
+                      </Grid>
+                      <Grid item>               
+                          <Button variant="contained" color="primary" onClick={this.search.bind(this)}>Search</Button>
+                      </Grid>
+                      
+                  </Grid>
+            </>
         )
     }
 }

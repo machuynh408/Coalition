@@ -5,7 +5,7 @@ const SDK_URL = 'https://www.youtube.com/iframe_api'
 const SDK_GLOBAL = 'YT'
 
 export default class YouTube extends React.Component {
-
+    
     state = { 
         playerState: -1 
     }
