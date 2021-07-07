@@ -7,14 +7,13 @@ import { spotify } from './Spotify'
 import { Button, Grid } from '@material-ui/core';
 
 const YOUTUBE_API = "https://www.googleapis.com/youtube/v3/search"
-const YOUTUBE_API_KEY = ""
+const YOUTUBE_API_KEY = "AIzaSyCo6MwBXeTpSEThIs1r2IpXwYX9WQqgJvM"
 
 export default class SearchBar extends React.Component {
     
     state = {
         searchValue: "",
-        selectValue: 0,
-        searchResults: []
+        selectValue: 0
     }
 
     searchValueCallback = (value) => {
@@ -43,23 +42,23 @@ export default class SearchBar extends React.Component {
                     var results = []
         
                     res.data.items.map((entry) => {
+                        console.log(entry)
                         results.push({
                             "videoId": entry.id.videoId,
                             "title": entry.snippet.title,
                             "channel": entry.snippet.channelTitle,
-                            "thumbnail": "https://i.ytimg.com/vi/" + entry.id.videoId + "/mqdefault.jpg", //default.jpg // 120 90 //mqdefault.jpg // 320 180  //hqdefault.jpg // 480 360
+                            "thumbnail": "https://i.ytimg.com/vi/" + entry.id.videoId + "/hqdefault.jpg", //default.jpg // 120 90 //mqdefault.jpg // 320 180  //hqdefault.jpg // 480 360
                             "source": "youtube"
                             })
                     })
-        
-                    this.setState({searchResults: results})
+                    this.props.searchResultsChanged(results)
                 })
                 .catch((error) => {
                     console.log(error)
                 })
                 break
             case 2: // SPOTIFY       
-                spotify.searchTracks("BLXST")
+                spotify.searchTracks(this.state.searchValue)
                 .then((res) => {
                     console.log(res.body)
                 }, (err) => {

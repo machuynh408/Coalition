@@ -2,7 +2,6 @@ import React from 'react';
 import Paper from '@material-ui/core/Paper';
 import InputBase from '@material-ui/core/InputBase';
 import { MenuItem, Select, withStyles } from '@material-ui/core';
-import makeStyles from '@material-ui/core/styles/makeStyles';
 import { primaryBlue } from '../Colors';
 
 const useStyles = (theme) => ({
@@ -47,13 +46,18 @@ class SearchInput extends React.Component {
                     inputProps={{ 'aria-label': 'id no.', className: classes.inputField }}
                     value={this.state.searchValue}
                     onChange={e => { 
-                        this.setState({searchValue: e.target.data}); 
-                        this.props.textChanged(e.target.data) }}
+                        this.setState({searchValue: e.target.value}); 
+                        this.props.textChanged(e.target.value) }}
                 />
                 
-                <Select disableUnderline label="Age" value={this.state.selectValue} onChange={e => {
-                    this.setState({selectValue: e.target.value});
-                    this.props.selectChanged(e.target.value)}}>
+                <Select disableUnderline 
+                    label="Age" 
+                    value={this.state.selectValue} 
+                    onChange={e => {
+                            this.setState({selectValue: e.target.value});
+                            this.props.selectChanged(e.target.value)}
+                        }>
+
                     <MenuItem value={0}>All</MenuItem>
                     <MenuItem value={1}>YouTube</MenuItem>
                     <MenuItem value={2}>Spotify</MenuItem>
