@@ -1,13 +1,16 @@
 import './App.css';
 import React from 'react'
 import SearchBar from './SearchBar';
+import YouTube from './YouTube'
 
 // Material-UI
-import { Typography, AppBar, CssBaseline, Grid, List, ListItem, ListItemIcon, ListItemText, Button, Card, CardMedia, CardContent, CardActions, CardActionArea, Toolbar, withStyles } from '@material-ui/core';
-import { primaryBlack, secondaryBlack } from './Colors';
+import { Typography, AppBar, Avatar, CssBaseline, Divider, Grid, List, ListItem, ListItemIcon, ListItemText, Toolbar, withStyles } from '@material-ui/core';
+import { primaryBlack } from './Colors';
 import { MuiThemeProvider, createMuiTheme } from "@material-ui/core/styles";
 import YouTubeIcon from '@material-ui/icons/YouTube';
 import IconButton from '@material-ui/core/IconButton';
+import PlayArrowIcon from '@material-ui/icons/PlayArrow';
+import PlaylistAddIcon from '@material-ui/icons/PlaylistAdd';
 
 // MediaBar
 import SkipPreviousIcon from '@material-ui/icons/SkipPrevious';
@@ -53,6 +56,10 @@ const useStyles = (theme) => ({
     media: {
         height: 200,
     },
+    avatar: {
+        width: theme.spacing(7),
+        height: theme.spacing(7),
+    },
 });
 
 const darkTheme = createMuiTheme({
@@ -61,7 +68,8 @@ const darkTheme = createMuiTheme({
         default: primaryBlack
       },
       text: {
-        primary: "#ffffff"
+        primary: "#ffffff",
+        secondary: '#bdbdbd'
       }
     }
   });
@@ -69,51 +77,104 @@ const darkTheme = createMuiTheme({
 class App extends React.Component {
 
     state = {
-        searchResults: [],
+        searchResults: [
+        ],
         volume: 50,
         selectionIndex: -1
     }
 
+    playerRef = (player) => {
+        this.player = player
+    }
+
     searchResultsCallback = (value) => {
         this.setState({ searchResults: value })
+        if (this.state.searchResults.length > 0) {
+            this.setState({ selectionIndex: 0 })
+        }
+        else {
+            this.setState({ selectionIndex: -1 })
+        }
     }
 
     setVolume = (event, newValue) => {
-        if (this.state.volume == newValue) {
+        if (this.state.volume === newValue) {
             return
         }
         this.setState({ volume: newValue })
+        if (!this.player.state.isReady) {
+            return
+        }
+        this.player.setVolume(this.state.volume)
+    }
+
+    onSearchPlay = (index) => {
+        const videoId = this.state.searchResults[index]["videoId"]
+        this.player.play(videoId)
     }
 
     MainContent = () => {
-        console.log("hgere")
+        const classes = this.props
         return (
+            <>
+                <List dense={false}>
+                { 
+                    this.state.searchResults.map((entry, index) => {
+                        return (
+                            <>
+                                <ListItem key={index}
+                                    style={{ backgroundColor: this.state.selectionIndex === index ? '#2e7d32' : '#424242'}} 
+                                    onClick={ e => { this.setState({selectionIndex: index })}}>
 
-        <Grid container spacing={2}>
-                <Grid item container direction="column">
+                                    <Grid container direction="row">
+                                        <Grid item container direction="row" alignItems="center" xs={1}>
+                                            <Grid item xs={6}>
+                                                <ListItemIcon>
+                                                    <YouTubeIcon style={{ color: 'red' }}/>
+                                                </ListItemIcon>
+                                            </Grid>
+                                            <Grid item xs={6}>
+                                                <Avatar src={entry["thumbnail"]} className={classes.avatar} />
+                                            </Grid>
+                                        </Grid>
 
-                </Grid>
-                <Grid>
-                    <List dense={false}>
-                        { 
-                            this.state.searchResults.map((entry, index) => {
-                                return (
-                                    <ListItem button>
-                                        <ListItemIcon>
-                                            <YouTubeIcon />
-                                        </ListItemIcon>
-                                        <ListItemText
-                                            primary={entry["title"]}
-                                            secondary={entry["channel"]}
-                                        />
-                                    </ListItem>
-                                )
-                            }) 
-                        }           
-                    </List>
-                </Grid>
-        </Grid>
+                                        <Grid item container direction="row" alignItems="center" xs={8}>
+                                            <Grid item>
+                                                <ListItemText
+                                                    primary={entry["title"]}
+                                                    secondary={entry["channel"]}
+                                                />
+                                            </Grid>
+                                        </Grid>
+
+                                        <Grid item container direction="row-reverse" alignItems="center" justify="flex-start" xs={3}>
+                                            <Grid item>
+                                                <IconButton color="inherit">
+                                                    <PlaylistAddIcon />
+                                                </IconButton>
+                                            </Grid>
+                                            <Grid item>
+                                                <IconButton color="inherit" onClick={ () => this.onSearchPlay(index) }>
+                                                    <PlayArrowIcon />
+                                                </IconButton>
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+
+                                </ListItem>
+                                <Divider light />
+                            </>
+                        )
+                    }) 
+                }           
+            </List>
+            <YouTube ref={this.playerRef}/>
+            </>
        ) 
+    }
+
+    onMediaMainButton = () => {
+        this.player.play()
     }
 
     MediaPlayer = () => {
@@ -125,7 +186,7 @@ class App extends React.Component {
                         <IconButton color="inherit">
                             <SkipPreviousIcon />
                         </IconButton>
-                        <IconButton color="inherit">
+                        <IconButton color="inherit" onClick={ () => this.onMediaMainButton() }>
                             <PlayCircleOutlineIcon className={classes.mediaMainButton}/>
                         </IconButton>
                         <IconButton color="inherit">
@@ -188,7 +249,7 @@ class App extends React.Component {
                                 </Grid>
                                 <Grid item>
                                     <IconButton color="inherit">
-                                        { this.state.volume == 0 ? <VolumeOffIcon /> : <VolumeUpIcon /> }
+                                        { this.state.volume === 0 ? <VolumeOffIcon /> : <VolumeUpIcon /> }
                                     </IconButton>
                                 </Grid>
                                 <Grid item>

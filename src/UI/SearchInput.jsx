@@ -14,6 +14,7 @@ const useStyles = (theme) => ({
     input: {
         marginLeft: theme.spacing(1),
         flex: 1,
+        color: 'black'
     },
     inputField: {
         paddingLeft: theme.spacing(2),
@@ -26,6 +27,9 @@ const useStyles = (theme) => ({
         '& svg': {
             fill: theme.palette.Paper,
         },
+    },
+    select: {
+        color: 'black'
     }
 });
 
@@ -52,7 +56,8 @@ class SearchInput extends React.Component {
                 
                 <Select disableUnderline 
                     label="Age" 
-                    value={this.state.selectValue} 
+                    value={this.state.selectValue}
+                    className={classes.select}
                     onChange={e => {
                             this.setState({selectValue: e.target.value});
                             this.props.selectChanged(e.target.value)}
