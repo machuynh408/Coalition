@@ -2,27 +2,18 @@ import './App.css';
 import React from 'react'
 import SearchBar from './SearchBar';
 import YouTube from './YouTube'
+import { totalSecondsToStr } from './Utils';
 
 // Material-UI
-import { Typography, AppBar, Avatar, CssBaseline, Divider, Grid, List, ListItem, ListItemIcon, ListItemText, Toolbar, withStyles } from '@material-ui/core';
+import { Typography, AppBar, Avatar, CssBaseline, Divider, Grid, IconButton, List, ListItem, ListItemIcon, ListItemText, Slider, Toolbar, withStyles } from '@material-ui/core';
 import { primaryBlack } from './Colors';
 import { MuiThemeProvider, createMuiTheme } from "@material-ui/core/styles";
 import YouTubeIcon from '@material-ui/icons/YouTube';
-import IconButton from '@material-ui/core/IconButton';
-import PlayArrowIcon from '@material-ui/icons/PlayArrow';
-import PlaylistAddIcon from '@material-ui/icons/PlaylistAdd';
-
-// MediaBar
-import SkipPreviousIcon from '@material-ui/icons/SkipPrevious';
-import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
-import SkipNextIcon from '@material-ui/icons/SkipNext';
-import RepeatIcon from '@material-ui/icons/Repeat';
-import Slider from '@material-ui/core/Slider';
-
-// MediaRight
-import QueueMusicIcon from '@material-ui/icons/QueueMusic';
-import VolumeOffIcon from '@material-ui/icons/VolumeOff';
-import VolumeUpIcon from '@material-ui/icons/VolumeUp';
+import { 
+    PlayArrow, PlaylistAdd, 
+    SkipPrevious, PlayCircleOutline, PauseCircleOutline, SkipNext, Repeat,
+    QueueMusic, VolumeOff, VolumeUp, Pause
+} from '@material-ui/icons';
 
 const useStyles = (theme) => ({
     app: {
@@ -37,13 +28,14 @@ const useStyles = (theme) => ({
         bottom: 0,
         backgroundColor: "#222222",
         minHeight: 100,
+        maxHeight: 125,
     },
     mediaMainButton: {
         height: 50,
         width: 50
     },
     mediaSlider: {
-        width: 700,
+        width: 600,
         paddingTop: 5
     },
     volumeSlider: {
@@ -60,6 +52,9 @@ const useStyles = (theme) => ({
         width: theme.spacing(7),
         height: theme.spacing(7),
     },
+    typography: {
+        display: 'inline-block'
+    }
 });
 
 const darkTheme = createMuiTheme({
@@ -77,23 +72,35 @@ const darkTheme = createMuiTheme({
 class App extends React.Component {
 
     state = {
-        searchResults: [
-        ],
+        searchResults: [],
         volume: 50,
-        selectionIndex: -1
+        playerState: -1,
+        mediaState: -1,
+        selectionIndex: -1,
+        currentSeconds: 0,
+        totalSeconds: 0
     }
 
-    playerRef = (player) => {
-        this.player = player
-    }
+    playerRef = (player) => this.player = player
 
     searchResultsCallback = (value) => {
-        this.setState({ searchResults: value })
-        if (this.state.searchResults.length > 0) {
-            this.setState({ selectionIndex: 0 })
-        }
-        else {
-            this.setState({ selectionIndex: -1 })
+        this.setState({ searchResults: value, selectionIndex: value.length > 0 ? 0 : -1 })
+    }
+
+    stateChangedCallback = (value) =>  {
+        this.setState({ playerState: value })
+        switch(value) {
+            case 1: // playing
+                this.setState({mediaState: 1})
+                break
+            case -1: // unstarted
+            case 0: // ended
+            case 2: // paused
+            case 3: // buffering
+                this.setState({mediaState: -1})
+                break
+            default:
+                break
         }
     }
 
@@ -105,13 +112,25 @@ class App extends React.Component {
         if (!this.player.state.isReady) {
             return
         }
-        this.player.setVolume(this.state.volume)
+        this.player.setVolume(newValue)
+    }
+
+    setSeconds = (event, newValue) => {
+        if (this.state.currentSeconds === newValue || !this.player.state.isReady) {
+            return
+        }
+        this.setState({ currentSeconds: newValue })
     }
 
     onSearchPlay = (index) => {
         const videoId = this.state.searchResults[index]["videoId"]
-        this.player.play(videoId)
+        const totalSeconds = this.state.searchResults[index]["durationInt"]
+        this.setState({ currentSeconds: 0, totalSeconds: totalSeconds })
+        this.player.setVolume(this.state.volume)
+        this.player.playById(videoId)
     }
+
+    elapsedCallback = (time) => this.setState({ currentSeconds: time })
 
     MainContent = () => {
         const classes = this.props
@@ -150,13 +169,17 @@ class App extends React.Component {
                                         <Grid item container direction="row-reverse" alignItems="center" justify="flex-start" xs={3}>
                                             <Grid item>
                                                 <IconButton color="inherit">
-                                                    <PlaylistAddIcon />
+                                                    <PlaylistAdd />
                                                 </IconButton>
                                             </Grid>
                                             <Grid item>
                                                 <IconButton color="inherit" onClick={ () => this.onSearchPlay(index) }>
-                                                    <PlayArrowIcon />
+                                                    <PlayArrow />
                                                 </IconButton>
+                                            </Grid>
+                                            <Grid item>
+                                                
+                                                <Typography variant="subtitle1">{ entry["durationStr"] }</Typography>
                                             </Grid>
                                         </Grid>
                                     </Grid>
@@ -168,46 +191,101 @@ class App extends React.Component {
                     }) 
                 }           
             </List>
-            <YouTube ref={this.playerRef}/>
+            <YouTube ref={this.playerRef} stateChanged={this.stateChangedCallback} onElapsed={this.elapsedCallback}/>
             </>
        ) 
     }
 
     onMediaMainButton = () => {
-        this.player.play()
+        switch(this.state.mediaState) {
+            case -1: // Play
+                this.player.setVolume(this.state.volume)
+                this.player.play()
+                break
+            case 1: // Pause
+                this.player.pause()
+                break
+            default:
+                break
+        }
+    }
+
+    getCurrentTrack = () => {
+        if (this.state.selectionIndex < 0) {
+            return null
+        }
+        return this.state.searchResults[this.state.selectionIndex]
     }
 
     MediaPlayer = () => {
         const { classes } = this.props
         return (
-            <Grid container direction="column" alignItems="center" justify="center">
-                <Grid item>
-                    <Toolbar>
-                        <IconButton color="inherit">
-                            <SkipPreviousIcon />
-                        </IconButton>
-                        <IconButton color="inherit" onClick={ () => this.onMediaMainButton() }>
-                            <PlayCircleOutlineIcon className={classes.mediaMainButton}/>
-                        </IconButton>
-                        <IconButton color="inherit">
-                            <SkipNextIcon />
-                        </IconButton>
-                        <IconButton color="inherit">
-                            <RepeatIcon />
-                        </IconButton>
-                    </Toolbar>
-                </Grid>
-                <Grid item container direction="row" spacing={2} justify="center" alignItems="center">
-                    <Grid item>
-                        <div className={classes.mediaSlider}>
-                            <Slider value={0} />
-                        </div>
+
+            <>
+                <Grid container alignItems="center">
+
+                    <Grid item container alignItems="center" justify="flex-start" xs={2}>
+                        <Grid item xs={3}>
+                            <Avatar src={this.getCurrentTrack() !== null ? this.getCurrentTrack()["thumbnail"] : ''} className={classes.avatar} />
+                        </Grid>
+                        <Grid item xs={9}>
+                            <Typography noWrap="true" variant="subtitle1">{this.getCurrentTrack() !== null ? this.getCurrentTrack()["title"] : 'Title'}</Typography>
+                            <Typography noWrap="true" variant="caption">{this.getCurrentTrack() !== null ? this.getCurrentTrack()["channel"] : 'Artist'}</Typography>
+                        </Grid>
                     </Grid>
-                    <Grid item>
-                        <Typography variant="h7">0:00 / 0:00</Typography>
+
+                    <Grid item container direction="column" alignItems="center" justify="center" xs={8}>
+                        <Grid item>
+                            <Toolbar>
+                                <IconButton color="inherit">
+                                    <SkipPrevious />
+                                </IconButton>
+                                <IconButton color="inherit" onClick={ () => this.onMediaMainButton() }>
+                                    { this.state.mediaState === -1 ? <PlayCircleOutline className={classes.mediaMainButton}/> : <PauseCircleOutline className={classes.mediaMainButton}/> }
+                                </IconButton>
+                                <IconButton color="inherit">
+                                    <SkipNext />
+                                </IconButton>
+                                <IconButton color="inherit">
+                                    <Repeat />
+                                </IconButton>
+                            </Toolbar>
+                        </Grid>
+
+                        <Grid item container spacing={2} justify="center" alignItems="center">
+                            <Grid item>
+                                <Typography variant="subtitle1">{totalSecondsToStr(this.state.currentSeconds)}</Typography>
+                            </Grid>
+                            <Grid item>
+                                <div className={classes.mediaSlider}>
+                                    <Slider value={this.state.currentSeconds} max={this.state.totalSeconds} step={1} onChange={ this.setSeconds }/>
+                                </div>
+                            </Grid>
+                            <Grid item>
+                                <Typography variant="subtitle1">{ totalSecondsToStr(this.state.totalSeconds) }</Typography>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+
+                    <Grid item container spacing={1} justify="center" alignItems="center" xs={2}>
+                        <Grid item>
+                            <IconButton color="inherit">
+                                <QueueMusic />
+                            </IconButton>
+                        </Grid>
+                        <Grid item>
+                            <IconButton color="inherit">
+                                { this.state.volume === 0 ? <VolumeOff /> : <VolumeUp /> }
+                            </IconButton>
+                        </Grid>
+                        <Grid item>
+                            <div className={classes.volumeSlider}>
+                                <Slider value={this.state.volume} step={1} onChange={ this.setVolume }/>
+                            </div>
+                        </Grid>
                     </Grid>
                 </Grid>
-            </Grid>
+            </>
         )
     }
 
@@ -233,33 +311,7 @@ class App extends React.Component {
                     { this.MainContent() }
                 </main>
                 <AppBar position="fixed" color="primary" className={classes.mediaBar}>
-                    <Grid container direction="row" alignItems="center">
-                        <Grid item xs={2}>
-
-                        </Grid>
-                        <Grid item xs={8}>
-                            { this.MediaPlayer() } 
-                        </Grid>
-                        <Grid item xs={2}>
-                            <Grid item container direction="row" spacing={1} justify="center" alignItems="center">
-                                <Grid item>
-                                    <IconButton color="inherit">
-                                        <QueueMusicIcon />
-                                    </IconButton>
-                                </Grid>
-                                <Grid item>
-                                    <IconButton color="inherit">
-                                        { this.state.volume === 0 ? <VolumeOffIcon /> : <VolumeUpIcon /> }
-                                    </IconButton>
-                                </Grid>
-                                <Grid item>
-                                    <div className={classes.volumeSlider}>
-                                        <Slider value={this.state.volume} step={1} onChange={ this.setVolume }/>
-                                    </div>
-                                </Grid>
-                            </Grid>
-                        </Grid>
-                    </Grid>
+                    { this.MediaPlayer() }
                 </AppBar>
             </MuiThemeProvider>
         );

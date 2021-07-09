@@ -6,9 +6,9 @@ const SDK_GLOBAL = 'YT'
 
 export default class YouTube extends React.Component {
     
-    state = { 
-        playerState: -1,
-        isReady: false
+    state = {
+        isReady: false,
+        lastTimeUpdate: 0,
     }
 
     componentDidMount = () => {
@@ -17,35 +17,45 @@ export default class YouTube extends React.Component {
                 window.onYouTubePlayerAPIReady = this.load.bind(this)
                 this.setState({ isReady: true })
             }).catch(err => {
-                console.log(err)
+                console.log("YouTube API Failed!")
             })
         }
     }
 
     load = () => {
+        console.log("YouTube API Success!")
         this.player = new window.YT.Player('player', {
             height: '0',
             width: '0',
             videoId: 'M7lc1UVf-VE',
             events: {
-                'onStateChange': this.onPlayerStateChange
+                'onStateChange': (event) => this.props.stateChanged(event.data)
+            }
+        })
+
+        window.addEventListener('message', (event) => {
+            if (event.source === this.player.getIframe().contentWindow) {
+                var data = JSON.parse(event.data);
+          
+                if (data.event === "infoDelivery" && data.info && data.info.currentTime) {
+                  var time = Math.floor(data.info.currentTime);
+          
+                  if (time !== this.state.lastTimeUpdate) {
+                      this.setState({ lastTimeUpdate: time })
+                      this.props.onElapsed(time)
+                  }
+                }
             }
         })
     }
 
-    onPlayerStateChange = (event) => this.setState({playerState: event.data})
-
     play = () => this.player.playVideo()
 
-    play = (videoId, start = 0) => {
-        this.player.loadVideoById(videoId, start)
-    }
+    playById = (videoId, start = 0) => this.player.loadVideoById(videoId, start)
 
     pause = () => this.player.pauseVideo()
 
-    setVolume = (value) => {
-        this.player.setVolume(value)
-    }
+    setVolume = (value) => this.player.setVolume(value)
 
     render() {
         return (<div id={'player'} />)

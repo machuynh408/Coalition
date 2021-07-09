@@ -2,11 +2,12 @@ import React from 'react'
 import SearchInput from './UI/SearchInput';
 import Axios from 'axios'
 import { spotify } from './Spotify'
+import { isoToStr, getTotalSeconds } from './Utils';
 
 // Material-UI
 import { Button, Grid } from '@material-ui/core';
 
-const YOUTUBE_API = "https://www.googleapis.com/youtube/v3/search"
+const YOUTUBE_API = "https://www.googleapis.com/youtube/v3/"
 const YOUTUBE_API_KEY = ""
 
 export default class SearchBar extends React.Component {
@@ -25,12 +26,12 @@ export default class SearchBar extends React.Component {
     }
 
     search() {
-
+        var results = {}
         switch(this.state.selectValue) {
             case 1: // YOUTUBE
                 Axios({
                     "method": "GET",
-                    "url": YOUTUBE_API,
+                    "url": YOUTUBE_API + 'search',
                     "params": {
                         "part": "snippet",
                         "maxResults": "5",
@@ -39,19 +40,44 @@ export default class SearchBar extends React.Component {
                     }
                 })
                 .then((res) => {
-                    var results = []
-        
                     res.data.items.map((entry) => {
-                        console.log(entry)
-                        results.push({
-                            "videoId": entry.id.videoId,
-                            "title": entry.snippet.title,
-                            "channel": entry.snippet.channelTitle,
-                            "thumbnail": "https://i.ytimg.com/vi/" + entry.id.videoId + "/hqdefault.jpg", //default.jpg // 120 90 //mqdefault.jpg // 320 180  //hqdefault.jpg // 480 360
-                            "source": "youtube"
-                            })
+                        if (entry.id.videoId !== undefined) {
+                            results[entry.id.videoId] =
+                            {
+                                "videoId": entry.id.videoId,
+                                "title": entry.snippet.title,
+                                "channel": entry.snippet.channelTitle,
+                                "durationStr": "",
+                                "durationInt": 0,
+                                "thumbnail": "https://i.ytimg.com/vi/" + entry.id.videoId + "/hqdefault.jpg", //default.jpg // 120 90 //mqdefault.jpg // 320 180  //hqdefault.jpg // 480 360
+                                "source": "youtube"
+                            }
+                        }
                     })
-                    this.props.searchResultsChanged(results)
+                    //this.props.searchResultsChanged(results)
+                })
+                .then (() => {
+                    var requests = []
+                    for (var videoId in results) {
+                        requests.push(
+                            Axios.get(YOUTUBE_API + 'videos', {
+                                "params": {
+                                    "id": videoId,
+                                    "part": "contentDetails",
+                                    "key": YOUTUBE_API_KEY
+                                }
+                            })
+                        )
+                    }
+                    Promise.all(requests).then((res) => {
+                        res.forEach((entry) => {
+                            const videoId = entry["data"]["items"][0]["id"]
+                            const time = entry["data"]["items"][0]["contentDetails"]["duration"]
+                            results[videoId]["durationStr"] = isoToStr(time)
+                            results[videoId]["durationInt"] = getTotalSeconds(time)
+                        })
+                        this.props.searchResultsChanged(Object.values(results))
+                    })
                 })
                 .catch((error) => {
                     console.log(error)
