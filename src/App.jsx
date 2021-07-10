@@ -1,12 +1,13 @@
 import './App.css';
 import React from 'react'
-import SearchBar from './SearchBar';
+import Search from './Search';
+import Queue from './UI/Queue'
 import YouTube from './YouTube'
 import { totalSecondsToStr } from './Utils';
 
 // Material-UI
 import { Typography, AppBar, Avatar, CssBaseline, Divider, Grid, IconButton, List, ListItem, ListItemIcon, ListItemText, Slider, Toolbar, withStyles } from '@material-ui/core';
-import { primaryBlack } from './Colors';
+import { primaryBlack, primaryBlue } from './Colors';
 import { MuiThemeProvider, createMuiTheme } from "@material-ui/core/styles";
 import YouTubeIcon from '@material-ui/icons/YouTube';
 import { 
@@ -16,9 +17,6 @@ import {
 } from '@material-ui/icons';
 
 const useStyles = (theme) => ({
-    app: {
-        backgroundColor: 'red'
-    },
     appBar: {
         backgroundColor: "#222222",
         maxHeight: 70,
@@ -39,22 +37,14 @@ const useStyles = (theme) => ({
         paddingTop: 5
     },
     volumeSlider: {
+        color: 'red',
         width: 100,
         paddingTop: 5
-    },
-    card: {
-        backgroundColor: theme.palette.background.paper
-    },
-    media: {
-        height: 200,
     },
     avatar: {
         width: theme.spacing(7),
         height: theme.spacing(7),
     },
-    typography: {
-        display: 'inline-block'
-    }
 });
 
 const darkTheme = createMuiTheme({
@@ -82,12 +72,16 @@ class App extends React.Component {
     }
 
     playerRef = (player) => this.player = player
+    queueRef = (queue) => this.queue = queue
 
-    searchResultsCallback = (value) => {
-        this.setState({ searchResults: value, selectionIndex: value.length > 0 ? 0 : -1 })
+    searchResultsCallback = (value) =>  {
+        console.log("searchResultsCallback")
+        this.setState({ searchResults: [] })
+        this.setState({ searchResults: value, selectionIndex: value.length > 0 ? 0 : -1 }) 
     }
 
     stateChangedCallback = (value) =>  {
+        console.log("stateChangedCallback")
         this.setState({ playerState: value })
         switch(value) {
             case 1: // playing
@@ -105,6 +99,7 @@ class App extends React.Component {
     }
 
     setVolume = (event, newValue) => {
+        console.log("setVolume")
         if (this.state.volume === newValue) {
             return
         }
@@ -116,6 +111,7 @@ class App extends React.Component {
     }
 
     setSeconds = (event, newValue) => {
+        console.log("setSeconds")
         if (this.state.currentSeconds === newValue || !this.player.state.isReady) {
             return
         }
@@ -123,11 +119,18 @@ class App extends React.Component {
     }
 
     onSearchPlay = (index) => {
+        console.log("onSearchPlay")
         const videoId = this.state.searchResults[index]["videoId"]
         const totalSeconds = this.state.searchResults[index]["durationInt"]
         this.setState({ currentSeconds: 0, totalSeconds: totalSeconds })
         this.player.setVolume(this.state.volume)
         this.player.playById(videoId)
+    }
+
+    onSearchAdd = (index) => {
+        console.log("onSearchAdd")
+        const media = this.state.searchResults[index]
+        this.queue.add(media)
     }
 
     elapsedCallback = (time) => this.setState({ currentSeconds: time })
@@ -142,8 +145,8 @@ class App extends React.Component {
                         return (
                             <>
                                 <ListItem key={index}
-                                    style={{ backgroundColor: this.state.selectionIndex === index ? '#2e7d32' : '#424242'}} 
-                                    onClick={ e => { this.setState({selectionIndex: index })}}>
+                                    style={{ backgroundColor: this.state.selectionIndex === index ? primaryBlue : '#424242'}} 
+                                    onClick={ () => { this.setState({selectionIndex: index })}}>
 
                                     <Grid container direction="row">
                                         <Grid item container direction="row" alignItems="center" xs={1}>
@@ -168,7 +171,7 @@ class App extends React.Component {
 
                                         <Grid item container direction="row-reverse" alignItems="center" justify="flex-start" xs={3}>
                                             <Grid item>
-                                                <IconButton color="inherit">
+                                                <IconButton color="inherit" onClick={ () => this.onSearchAdd(index) }>
                                                     <PlaylistAdd />
                                                 </IconButton>
                                             </Grid>
@@ -177,8 +180,7 @@ class App extends React.Component {
                                                     <PlayArrow />
                                                 </IconButton>
                                             </Grid>
-                                            <Grid item>
-                                                
+                                            <Grid item>                              
                                                 <Typography variant="subtitle1">{ entry["durationStr"] }</Typography>
                                             </Grid>
                                         </Grid>
@@ -191,7 +193,6 @@ class App extends React.Component {
                     }) 
                 }           
             </List>
-            <YouTube ref={this.playerRef} stateChanged={this.stateChangedCallback} onElapsed={this.elapsedCallback}/>
             </>
        ) 
     }
@@ -224,13 +225,17 @@ class App extends React.Component {
             <>
                 <Grid container alignItems="center">
 
-                    <Grid item container alignItems="center" justify="flex-start" xs={2}>
-                        <Grid item xs={3}>
+                    <Grid item container alignItems="center" xs={2}>
+                        <Grid item xs={2}>
                             <Avatar src={this.getCurrentTrack() !== null ? this.getCurrentTrack()["thumbnail"] : ''} className={classes.avatar} />
                         </Grid>
-                        <Grid item xs={9}>
-                            <Typography noWrap="true" variant="subtitle1">{this.getCurrentTrack() !== null ? this.getCurrentTrack()["title"] : 'Title'}</Typography>
-                            <Typography noWrap="true" variant="caption">{this.getCurrentTrack() !== null ? this.getCurrentTrack()["channel"] : 'Artist'}</Typography>
+                        <Grid item container direction="column" xs={10}>
+                            <Grid item>
+                                <Typography noWrap="true" variant="subtitle1">{this.getCurrentTrack() !== null ? this.getCurrentTrack()["title"] : 'Title'}</Typography>
+                            </Grid>
+                            <Grid item>
+                                <Typography noWrap="true" variant="caption">{this.getCurrentTrack() !== null ? this.getCurrentTrack()["channel"] : 'Artist'}</Typography>
+                            </Grid>
                         </Grid>
                     </Grid>
 
@@ -258,7 +263,7 @@ class App extends React.Component {
                             </Grid>
                             <Grid item>
                                 <div className={classes.mediaSlider}>
-                                    <Slider value={this.state.currentSeconds} max={this.state.totalSeconds} step={1} onChange={ this.setSeconds }/>
+                                    <Slider value={this.state.currentSeconds} max={this.state.totalSeconds} step={1} onChange={ () => this.setSeconds }/>
                                 </div>
                             </Grid>
                             <Grid item>
@@ -270,7 +275,7 @@ class App extends React.Component {
                     <Grid item container spacing={1} justify="center" alignItems="center" xs={2}>
                         <Grid item>
                             <IconButton color="inherit">
-                                <QueueMusic />
+                                <QueueMusic onClick={ () => this.queue.setVisibility(!this.queue.state.visible) }/>
                             </IconButton>
                         </Grid>
                         <Grid item>
@@ -280,7 +285,7 @@ class App extends React.Component {
                         </Grid>
                         <Grid item>
                             <div className={classes.volumeSlider}>
-                                <Slider value={this.state.volume} step={1} onChange={ this.setVolume }/>
+                                <Slider value={this.state.volume} step={1} onChange={ () => this.setVolume }/>
                             </div>
                         </Grid>
                     </Grid>
@@ -302,7 +307,7 @@ class App extends React.Component {
                                 <Typography variant="h6">COALITION</Typography>
                             </Grid>
                             <Grid item>
-                                <SearchBar searchResultsChanged={this.searchResultsCallback}/>
+                                <Search searchResultsChanged={ this.searchResultsCallback }/>
                             </Grid>
                         </Grid>
                     </Toolbar>
@@ -310,6 +315,8 @@ class App extends React.Component {
                 <main>
                     { this.MainContent() }
                 </main>
+                <Queue ref={this.queueRef} />
+                <YouTube ref={this.playerRef} stateChanged={this.stateChangedCallback} onElapsed={this.elapsedCallback}/>
                 <AppBar position="fixed" color="primary" className={classes.mediaBar}>
                     { this.MediaPlayer() }
                 </AppBar>
