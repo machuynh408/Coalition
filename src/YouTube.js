@@ -12,12 +12,15 @@ export default class YouTube extends React.Component {
     }
 
     componentDidMount = () => {
+        console.log("mount")
         if (!window.YT || !this.state.isReady) {
+            console.log("load")
             loadSDK(SDK_URL, SDK_GLOBAL).then(_ => {
+                console.log("in load")
+                console.log(window.onYouTubePlayerAPIReady === null)
                 window.onYouTubePlayerAPIReady = this.load.bind(this)
-                this.setState({ isReady: true })
             }).catch(err => {
-                console.log("YouTube API Failed!")
+                console.log("YouTube API Failed!!!")
             })
         }
     }
@@ -47,6 +50,7 @@ export default class YouTube extends React.Component {
                 }
             }
         })
+        this.setState({ isReady: true })
     }
 
     play = () => this.player.playVideo()
@@ -56,6 +60,8 @@ export default class YouTube extends React.Component {
     pause = () => this.player.pauseVideo()
 
     setVolume = (value) => this.player.setVolume(value)
+
+    seek = (value) => this.player.seekTo(value, true)
 
     render() {
         return (<div id={'player'} />)

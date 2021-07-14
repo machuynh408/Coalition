@@ -3,6 +3,8 @@ import SearchInput from './UI/SearchInput';
 import Axios from 'axios'
 import { spotify } from './Spotify'
 import { isoToStr, getTotalSeconds } from './Utils';
+import { htmlUnescape } from 'escape-goat';
+
 
 // Material-UI
 import { Button, Grid } from '@material-ui/core';
@@ -35,7 +37,7 @@ export default class SearchBar extends React.Component {
                     "url": YOUTUBE_API + 'search',
                     "params": {
                         "part": "snippet",
-                        "maxResults": "5",
+                        "maxResults": "10",
                         "key": YOUTUBE_API_KEY,
                         "q": this.state.searchValue
                     }
@@ -46,8 +48,8 @@ export default class SearchBar extends React.Component {
                             results[entry.id.videoId] =
                             {
                                 "videoId": entry.id.videoId,
-                                "title": entry.snippet.title,
-                                "channel": entry.snippet.channelTitle,
+                                "title":  htmlUnescape(entry.snippet.title),
+                                "channel": htmlUnescape(entry.snippet.channelTitle),
                                 "durationStr": "",
                                 "durationInt": 0,
                                 "thumbnail": "https://i.ytimg.com/vi/" + entry.id.videoId + "/hqdefault.jpg", //default.jpg // 120 90 //mqdefault.jpg // 320 180  //hqdefault.jpg // 480 360
@@ -77,8 +79,8 @@ export default class SearchBar extends React.Component {
                             results[videoId]["durationStr"] = isoToStr(time)
                             results[videoId]["durationInt"] = getTotalSeconds(time)
                         })
+                        this.props.searchResultsChanged(Object.values(results))
                     })
-                    this.props.searchResultsChanged(Object.values(results))
                 })
                 .catch((error) => {
                     console.log(error)

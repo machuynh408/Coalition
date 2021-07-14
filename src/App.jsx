@@ -69,16 +69,17 @@ class App extends React.Component {
         selectionIndex: -1,
         currentSeconds: 0,
         totalSeconds: 0,
-        currentMedia: null
+        currentMedia: null,
+        isRepeat: false
     }
-
+    
     playerRef = (player) => this.player = player
     queueRef = (queue) => this.queue = queue
 
     searchResultsCallback = (value) =>  this.setState({ searchResults: value, selectionIndex: value.length > 0 ? 0 : -1 })
 
     stateChangedCallback = (value) =>  {
-        console.log("stateChangedCallback")
+        console.log("stateChangedCallback: " + value)
         this.setState({ playerState: value })
         switch(value) {
             case 1: // playing
@@ -90,7 +91,12 @@ class App extends React.Component {
             case 3: // buffering
                 this.setState({mediaState: -1})
                 if (value == 0) {
-                    this.queue.next()
+                    if (this.state.isRepeat) {
+                        this.player.play()
+                    }
+                    else {
+                        this.queue.next()
+                    }
                 }
                 break
             default:
@@ -102,18 +108,23 @@ class App extends React.Component {
         if (this.state.volume === newValue) {
             return
         }
-        this.setState({ volume: newValue })
-        if (!this.player.state.isReady) {
-            return
-        }
-        this.player.setVolume(newValue)
+        this.setState({ volume: newValue }, () => {
+            if (!this.player.state.isReady) {
+                return
+            }
+            this.player.setVolume(newValue)
+        })
     }
 
     setSeconds = (event, newValue) => {
-        if (this.state.currentSeconds === newValue || !this.player.state.isReady) {
+        if (this.state.currentSeconds === newValue) {
             return
         }
-        this.setState({ currentSeconds: newValue })
+        if (!this.player.state.isReady) {
+            return
+        }
+        console.log("commit: " + newValue)
+        this.player.seek(newValue)
     }
 
     onSearchPlay = (index) => {
@@ -216,7 +227,7 @@ class App extends React.Component {
     onMediaMainButton = () => {
         switch(this.state.mediaState) {
             case -1: // Play
-                if (this.state.currentMedia === null) {
+                if (this.state.currentMedia === null && !this.state.isRepeat) {
                     this.queue.next()
                     return
                 }
@@ -255,16 +266,18 @@ class App extends React.Component {
                     <Grid item container direction="column" alignItems="center" justify="center" xs={8}>
                         <Grid item>
                             <Toolbar>
-                                <IconButton color="inherit">
+                                <IconButton color="inherit" onClick={ () => this.queue.prev() }>
                                     <SkipPrevious />
                                 </IconButton>
                                 <IconButton color="inherit" onClick={ () => this.onMediaMainButton() }>
                                     { this.state.mediaState === -1 ? <PlayCircleOutline className={classes.mediaMainButton}/> : <PauseCircleOutline className={classes.mediaMainButton}/> }
                                 </IconButton>
-                                <IconButton color="inherit">
+                                <IconButton color="inherit" onClick={ () => this.queue.next() }>
                                     <SkipNext />
                                 </IconButton>
-                                <IconButton color="inherit">
+                                <IconButton color="inherit" 
+                                    style={{ color: this.state.isRepeat ? primaryBlue : 'white'}}
+                                    onClick={ () => this.setState( { isRepeat: !this.state.isRepeat })}>
                                     <Repeat />
                                 </IconButton>
                             </Toolbar>
@@ -276,7 +289,10 @@ class App extends React.Component {
                             </Grid>
                             <Grid item>
                                 <div className={classes.mediaSlider}>
-                                    <Slider value={this.state.currentSeconds} max={this.state.totalSeconds} step={1} onChange={ () => this.setSeconds }/>
+                                    <Slider value={this.state.currentSeconds} max={this.state.totalSeconds} step={1} 
+                                        onChange={ (e, val) => this.setState({ currentSeconds: val }) }
+                                        onChangeCommitted={ (e, val) => this.setSeconds(e, val) }
+                                        />
                                 </div>
                             </Grid>
                             <Grid item>
@@ -298,7 +314,7 @@ class App extends React.Component {
                         </Grid>
                         <Grid item>
                             <div className={classes.volumeSlider}>
-                                <Slider value={this.state.volume} step={1} onChange={ () => this.setVolume }/>
+                                <Slider value={ this.state.volume } step={1} onChange={ (e, val) => this.setVolume(e, val) }/>
                             </div>
                         </Grid>
                     </Grid>
