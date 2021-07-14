@@ -14,7 +14,7 @@ export default class SearchBar extends React.Component {
     
     state = {
         searchValue: "",
-        selectValue: 0
+        selectValue: 1
     }
 
     searchValueCallback = (value) => {
@@ -77,8 +77,8 @@ export default class SearchBar extends React.Component {
                             results[videoId]["durationStr"] = isoToStr(time)
                             results[videoId]["durationInt"] = getTotalSeconds(time)
                         })
-                        this.props.searchResultsChanged(Object.values(results))
-                    })  
+                    })
+                    this.props.searchResultsChanged(Object.values(results))
                 })
                 .catch((error) => {
                     console.log(error)
