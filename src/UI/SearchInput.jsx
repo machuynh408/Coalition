@@ -37,7 +37,7 @@ class SearchInput extends React.Component {
 
     state = {
         searchValue: "",
-        selectValue: 0
+        selectValue: 1
     }
 
     render() {

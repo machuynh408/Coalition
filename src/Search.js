@@ -14,7 +14,7 @@ export default class SearchBar extends React.Component {
     
     state = {
         searchValue: "",
-        selectValue: 0
+        selectValue: 1
     }
 
     searchValueCallback = (value) => {
@@ -27,6 +27,7 @@ export default class SearchBar extends React.Component {
 
     search() {
         var results = {}
+        var requests = []
         switch(this.state.selectValue) {
             case 1: // YOUTUBE
                 Axios({
@@ -54,10 +55,8 @@ export default class SearchBar extends React.Component {
                             }
                         }
                     })
-                    //this.props.searchResultsChanged(results)
                 })
                 .then (() => {
-                    var requests = []
                     for (var videoId in results) {
                         requests.push(
                             Axios.get(YOUTUBE_API + 'videos', {
@@ -69,6 +68,8 @@ export default class SearchBar extends React.Component {
                             })
                         )
                     }
+                })
+                .then (() => {
                     Promise.all(requests).then((res) => {
                         res.forEach((entry) => {
                             const videoId = entry["data"]["items"][0]["id"]
@@ -76,8 +77,8 @@ export default class SearchBar extends React.Component {
                             results[videoId]["durationStr"] = isoToStr(time)
                             results[videoId]["durationInt"] = getTotalSeconds(time)
                         })
-                        this.props.searchResultsChanged(Object.values(results))
                     })
+                    this.props.searchResultsChanged(Object.values(results))
                 })
                 .catch((error) => {
                     console.log(error)
