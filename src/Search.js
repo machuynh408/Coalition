@@ -2,7 +2,7 @@ import React from 'react'
 import SearchInput from './UI/SearchInput';
 import Axios from 'axios'
 import { spotify } from './Spotify'
-import { isoToStr, getTotalSeconds } from './Utils';
+import { isoToStr, getTotalSeconds, totalSecondsToStr } from './Utils';
 import { htmlUnescape } from 'escape-goat';
 
 
@@ -19,8 +19,11 @@ export default class SearchBar extends React.Component {
         selectValue: 1
     }
 
-    searchValueCallback = (value) => {
+    searchValueCallback = (value, perform) => {
         this.setState({ searchValue: value })
+        if (perform) {
+            this.search()
+        }
     }
 
     selectValueCallback = (value) => {
@@ -47,23 +50,23 @@ export default class SearchBar extends React.Component {
                         if (entry.id.videoId !== undefined) {
                             results[entry.id.videoId] =
                             {
-                                "videoId": entry.id.videoId,
+                                "id": entry.id.videoId,
                                 "title":  htmlUnescape(entry.snippet.title),
-                                "channel": htmlUnescape(entry.snippet.channelTitle),
+                                "source": htmlUnescape(entry.snippet.channelTitle),
                                 "durationStr": "",
                                 "durationInt": 0,
                                 "thumbnail": "https://i.ytimg.com/vi/" + entry.id.videoId + "/hqdefault.jpg", //default.jpg // 120 90 //mqdefault.jpg // 320 180  //hqdefault.jpg // 480 360
-                                "source": "youtube"
+                                "variant": "youtube"
                             }
                         }
                     })
                 })
                 .then (() => {
-                    for (var videoId in results) {
+                    for (var id in results) {
                         requests.push(
                             Axios.get(YOUTUBE_API + 'videos', {
                                 "params": {
-                                    "id": videoId,
+                                    "id": id,
                                     "part": "contentDetails",
                                     "key": YOUTUBE_API_KEY
                                 }
@@ -74,10 +77,10 @@ export default class SearchBar extends React.Component {
                 .then (() => {
                     Promise.all(requests).then((res) => {
                         res.forEach((entry) => {
-                            const videoId = entry["data"]["items"][0]["id"]
+                            const id = entry["data"]["items"][0]["id"]
                             const time = entry["data"]["items"][0]["contentDetails"]["duration"]
-                            results[videoId]["durationStr"] = isoToStr(time)
-                            results[videoId]["durationInt"] = getTotalSeconds(time)
+                            results[id]["durationStr"] = isoToStr(time)
+                            results[id]["durationInt"] = getTotalSeconds(time)
                         })
                         this.props.searchResultsChanged(Object.values(results))
                     })
@@ -86,10 +89,31 @@ export default class SearchBar extends React.Component {
                     console.log(error)
                 })
                 break
-            case 2: // SPOTIFY       
+            case 2: // SPOTIFY  
+                results = []     
                 spotify.searchTracks(this.state.searchValue)
                 .then((res) => {
-                    console.log(res.body)
+                    const tracks = res.body["tracks"]["items"]
+
+                    tracks.map((entry) => {
+                        var source = ""
+                        const artists = entry["artists"]
+                        artists.map(artist => { source = source.concat(`${artist["name"]}, `)})
+                        source = source.slice(0, source.length - 2)
+
+                        const duration = entry["duration_ms"] / 1000
+
+                        results.push({
+                            "id":  entry["uri"],
+                            "title": entry["name"],
+                            "source": source,
+                            "durationStr": totalSecondsToStr(duration),
+                            "durationInt": duration,
+                            "thumbnail": entry["album"]["images"][0]["url"],
+                            "variant": "spotify"
+                        })
+                        this.props.searchResultsChanged(results)
+                    })
                 }, (err) => {
                     console.log(err)
                 })
@@ -104,7 +128,7 @@ export default class SearchBar extends React.Component {
             <>
                   <Grid container alignItems="center" spacing={2}>
                       <Grid item>
-                          <SearchInput textChanged={ this.searchValueCallback } selectChanged= { this.selectValueCallback }/>
+                          <SearchInput textChanged={ (s, b) => this.searchValueCallback(s,b) } selectChanged= { this.selectValueCallback }/>
                       </Grid>
                       <Grid item>               
                           <Button variant="contained" color="primary" onClick={this.search.bind(this)}>Search</Button>

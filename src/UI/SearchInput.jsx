@@ -40,6 +40,12 @@ class SearchInput extends React.Component {
         selectValue: 1
     }
 
+    onEnter = (e) => {
+        if (e.code === 'Enter') {
+            this.props.textChanged(this.state.searchValue, true)
+        }
+    }
+
     render() {
         const { classes } = this.props
         return (
@@ -49,9 +55,10 @@ class SearchInput extends React.Component {
                     placeholder="Search..."
                     inputProps={{ 'aria-label': 'id no.', className: classes.inputField }}
                     value={this.state.searchValue}
+                    onKeyDown={ (e) => this.onEnter(e) }
                     onChange={e => { 
                         this.setState({searchValue: e.target.value}); 
-                        this.props.textChanged(e.target.value) }}
+                        this.props.textChanged(e.target.value, false) }}
                 />
                 
                 <Select disableUnderline 

@@ -3,17 +3,18 @@ import React from 'react'
 import Search from './Search';
 import Queue from './Queue'
 import YouTube from './YouTube'
+import Spotify, { SPOTIFY_ACCESS_URL } from './Spotify'
 import { totalSecondsToStr } from './Utils';
 
 // Material-UI
-import { Typography, AppBar, Avatar, CssBaseline, Divider, Grid, IconButton, List, ListItem, ListItemIcon, ListItemText, Slider, Toolbar, withStyles } from '@material-ui/core';
+import { Typography, AppBar, Avatar, Badge, Button, CssBaseline, Divider, Grid, IconButton, List, ListItem, ListItemText, Slider, Toolbar, withStyles } from '@material-ui/core';
 import { primaryBlack, primaryBlue } from './Colors';
 import { MuiThemeProvider, createMuiTheme } from "@material-ui/core/styles";
-import YouTubeIcon from '@material-ui/icons/YouTube';
+
 import { 
     PlayArrow, PlaylistAdd, 
     SkipPrevious, PlayCircleOutline, PauseCircleOutline, SkipNext, Repeat,
-    QueueMusic, VolumeOff, VolumeUp, Pause
+    QueueMusic, VolumeOff, VolumeUp, CheckBox, IndeterminateCheckBox
 } from '@material-ui/icons';
 
 const useStyles = (theme) => ({
@@ -44,7 +45,7 @@ const useStyles = (theme) => ({
     avatar: {
         width: theme.spacing(7),
         height: theme.spacing(7),
-    },
+    }
 });
 
 const darkTheme = createMuiTheme({
@@ -72,9 +73,19 @@ class App extends React.Component {
         currentMedia: null,
         isRepeat: false
     }
-    
+
     playerRef = (player) => this.player = player
     queueRef = (queue) => this.queue = queue
+
+    componentDidMount = () => {
+        const src = window.location.hash.split("&")
+        const x = src[0]
+        if (!x.startsWith("#access_token")) {
+            return
+        }
+        var token = x.split("=")[1]
+        localStorage.setItem("spotify_access_token", token)
+    }
 
     searchResultsCallback = (value) =>  this.setState({ searchResults: value, selectionIndex: value.length > 0 ? 0 : -1 })
 
@@ -90,7 +101,7 @@ class App extends React.Component {
             case 2: // paused
             case 3: // buffering
                 this.setState({mediaState: -1})
-                if (value == 0) {
+                if (value === 0) {
                     if (this.state.isRepeat) {
                         this.player.play()
                     }
@@ -128,10 +139,11 @@ class App extends React.Component {
     }
 
     onSearchPlay = (index) => {
-        const videoId = this.state.searchResults[index]["videoId"]
-        const totalSeconds = this.state.searchResults[index]["durationInt"]
-        this.setState({ currentSeconds: 0, totalSeconds: totalSeconds })
-        this.play(videoId)
+        const entry = this.state.searchResults[index]
+        const id = entry["id"]
+        const totalSeconds = entry["durationInt"]
+        this.setState({ currentSeconds: 0, totalSeconds: totalSeconds, currentMedia: entry })
+        this.play(id)
     }
 
     queueChangedCallback = (media) => {
@@ -139,10 +151,10 @@ class App extends React.Component {
             return
         }
         this.setState({ currentMedia: media })
-        const videoId = media["videoId"]
+        const id = media["id"]
         const totalSeconds = media["durationInt"]
         this.setState({ currentSeconds: 0, totalSeconds: totalSeconds })
-        this.play(videoId)
+        this.play(id)
     }
 
     play = (videoId) => {
@@ -167,59 +179,57 @@ class App extends React.Component {
         const classes = this.props
         return (
             <>
-                <List dense={false}>
-                { 
-                    this.state.searchResults.map((entry, index) => {
-                        return (
-                            <>
-                                <ListItem key={index}
-                                    style={{ backgroundColor: this.state.selectionIndex === index ? primaryBlue : '#424242'}} >
+                <div style={{ marginTop: '5%', marginBottom: '8%' }}>
+                    <List dense={false}>
+                    { 
+                        this.state.searchResults.map((entry, index) => {
+                            return (
+                                <>
+                                    <ListItem key={index}
+                                        style={{ backgroundColor: this.state.selectionIndex === index ? primaryBlue : '#424242'}} 
+                                        onClick={ () => this.setState({selectionIndex: index})}>
 
-                                    <Grid container direction="row">
-                                        <Grid item container direction="row" alignItems="center" xs={1}>
-                                            <Grid item xs={6}>
-                                                <ListItemIcon>
-                                                    <YouTubeIcon style={{ color: 'red' }}/>
-                                                </ListItemIcon>
+                                        <Grid container direction="row">
+                                            <Grid item container alignItems="center" spacing={1} xs={11}>
+                                                <Grid item>
+                                                    <div style={{ backgroundColor: entry["variant"] === 'youtube' ? 'red' : '#00e676', width: '5px', height: '50px'}}/>
+                                                </Grid>
+                                                <Grid item>
+                                                    <Avatar src={entry["thumbnail"]} className={classes.avatar} variant="rounded"/>
+                                                </Grid>
+                                                <Grid item>
+                                                    <ListItemText
+                                                        primary={entry["title"]}
+                                                        secondary={entry["source"]}
+                                                    />
+                                                </Grid>
                                             </Grid>
-                                            <Grid item xs={6}>
-                                                <Avatar src={entry["thumbnail"]} className={classes.avatar} />
+                                        
+                                            <Grid item container direction="row-reverse" alignItems="center" justify="flex-start" xs={1}>
+                                                <Grid item>
+                                                    <IconButton color="inherit" onClick={ () => this.onSearchAdd(index) }>
+                                                        <PlaylistAdd />
+                                                    </IconButton>
+                                                </Grid>
+                                                <Grid item>
+                                                    <IconButton color="inherit" onClick={ () => this.onSearchPlay(index) }>
+                                                        <PlayArrow />
+                                                    </IconButton>
+                                                </Grid>
+                                                <Grid item>                              
+                                                    <Typography variant="subtitle1">{ entry["durationStr"] }</Typography>
+                                                </Grid>
                                             </Grid>
                                         </Grid>
 
-                                        <Grid item container direction="row" alignItems="center" xs={8}>
-                                            <Grid item>
-                                                <ListItemText
-                                                    primary={entry["title"]}
-                                                    secondary={entry["channel"]}
-                                                />
-                                            </Grid>
-                                        </Grid>
-
-                                        <Grid item container direction="row-reverse" alignItems="center" justify="flex-start" xs={3}>
-                                            <Grid item>
-                                                <IconButton color="inherit" onClick={ () => this.onSearchAdd(index) }>
-                                                    <PlaylistAdd />
-                                                </IconButton>
-                                            </Grid>
-                                            <Grid item>
-                                                <IconButton color="inherit" onClick={ () => this.onSearchPlay(index) }>
-                                                    <PlayArrow />
-                                                </IconButton>
-                                            </Grid>
-                                            <Grid item>                              
-                                                <Typography variant="subtitle1">{ entry["durationStr"] }</Typography>
-                                            </Grid>
-                                        </Grid>
-                                    </Grid>
-
-                                </ListItem>
-                                <Divider light />
-                            </>
-                        )
-                    }) 
-                }           
-            </List>
+                                    </ListItem>
+                                    <Divider light />
+                                </>
+                            )
+                        }) 
+                    }           
+                </List>
+                </div>
             </>
        ) 
     }
@@ -250,15 +260,19 @@ class App extends React.Component {
                 <Grid container alignItems="center">
 
                     <Grid item container alignItems="center" xs={2}>
-                        <Grid item xs={2}>
-                            <Avatar src={this.state.currentMedia !== null ? this.state.currentMedia["thumbnail"] : ''} className={classes.avatar} />
+                        <Grid item xs={3}>
+                            <div style={{ paddingLeft: '10px'}}>
+                                <Avatar src={this.state.currentMedia !== null ? this.state.currentMedia["thumbnail"] : ''} 
+                                    className={classes.avatar} 
+                                    variant="rounded"/>
+                            </div>
                         </Grid>
-                        <Grid item container direction="column" xs={10}>
+                        <Grid item container direction="column" xs={9}>
                             <Grid item>
                                 <Typography noWrap="true" variant="subtitle1">{this.state.currentMedia !== null ? this.state.currentMedia["title"] : 'Title'}</Typography>
                             </Grid>
                             <Grid item>
-                                <Typography noWrap="true" variant="caption">{this.state.currentMedia !== null ? this.state.currentMedia["channel"] : 'Artist'}</Typography>
+                                <Typography noWrap="true" variant="caption">{this.state.currentMedia !== null ? this.state.currentMedia["source"] : 'Artist'}</Typography>
                             </Grid>
                         </Grid>
                     </Grid>
@@ -304,7 +318,9 @@ class App extends React.Component {
                     <Grid item container spacing={1} justify="center" alignItems="center" xs={2}>
                         <Grid item>
                             <IconButton color="inherit">
-                                <QueueMusic onClick={ () => this.queue.setVisibility(!this.queue.state.visible) }/>
+                                <Badge badgeContent={this.queue.state.length} color="primary">
+                                    <QueueMusic onClick={ () => this.queue.setVisibility(!this.queue.state.visible) }/>
+                                </Badge>
                             </IconButton>
                         </Grid>
                         <Grid item>
@@ -329,25 +345,42 @@ class App extends React.Component {
         return (
             <MuiThemeProvider theme={darkTheme}>
                 <CssBaseline />
-                <AppBar className={classes.appBar} position="relative">
+                <main>
+                <AppBar position="fixed" className={classes.appBar}>
                     <Toolbar position="static">
-                        <Grid container alignItems="center" spacing={3}>
-                            <Grid item>
+                        <Grid container alignItems="center" spacing={1}>
+                            <Grid item xs={1}>
                                 <Typography variant="h6">COALITION</Typography>
                             </Grid>
-                            <Grid item>
+                            <Grid item xs={9}>
                                 <Search searchResultsChanged={ this.searchResultsCallback }/>
+                            </Grid>
+                            <Grid item container xs={2} justify="flex-end" spacing={1}>
+                                <Grid item xs={6}>
+                                    <Button 
+                                        variant="contained" 
+                                        style={{ backgroundColor: 'red', color: 'white' }}
+                                        startIcon={<IndeterminateCheckBox />}
+                                        onClick={ () => console.log("hello") }>YouTube</Button>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Button 
+                                        variant="contained" 
+                                        style={{ backgroundColor: '#00e676', color: 'white' }}
+                                        startIcon={localStorage.getItem("spotify_access_token") !== null ? <CheckBox /> : <IndeterminateCheckBox />}
+                                        href={ SPOTIFY_ACCESS_URL }>Spotify</Button>
+                                </Grid>
                             </Grid>
                         </Grid>
                     </Toolbar>
                 </AppBar>
-                <main>
-                    { this.MainContent() }
-                    <Queue ref={this.queueRef} onQueueChanged={this.queueChangedCallback}/>
-                    <YouTube ref={this.playerRef} stateChanged={this.stateChangedCallback} onElapsed={this.elapsedCallback}/>
-                    <AppBar position="fixed" color="primary" className={classes.mediaBar}>
-                        { this.MediaPlayer() }
-                    </AppBar>
+                { this.MainContent() }
+                <Queue ref={this.queueRef} onQueueChanged={this.queueChangedCallback}/>
+                <Spotify />
+                <YouTube ref={this.playerRef} stateChanged={this.stateChangedCallback} onElapsed={this.elapsedCallback}/>
+                <AppBar position="fixed" color="primary" className={classes.mediaBar}>
+                    { this.MediaPlayer() }
+                </AppBar>
                 </main>
                 
             </MuiThemeProvider>

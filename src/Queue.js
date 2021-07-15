@@ -37,6 +37,8 @@ class Queue extends React.Component {
 
     setVisibility = (value) => this.setState({ visible: value })
 
+    getSize = () => this.state.data.length
+
     add = (media) => this.setState(prevState => ({ data: [...prevState.data, media] }))
 
     remove = (index) => {
@@ -91,7 +93,7 @@ class Queue extends React.Component {
                                       <>
                                         <ListItem key={index} onClick={ () => this.selectMedia(index) }>
                                           <ListItemAvatar>
-                                              { this.state.position == index ? <AlbumIcon className={classes.album}/> : <Avatar src={entry["thumbnail"]} className={classes.avatar} /> }
+                                              { this.state.position === index ? <AlbumIcon className={classes.album}/> : <Avatar src={entry["thumbnail"]} className={classes.avatar} variant="rounded"/> }
                                           </ListItemAvatar>
                                           <ListItemText 
                                             primary={<Typography variant="h6" style={{ color: 'black' }}>{entry["title"]}</Typography>} 
